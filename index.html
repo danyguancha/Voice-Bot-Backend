@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice to Text</title>
+    <style>
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .error {
+            color: red;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid red;
+            border-radius: 4px;
+            background-color: #fff3f3;
+        }
+        .success {
+            color: green;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid green;
+            border-radius: 4px;
+            background-color: #f3fff3;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #status, #error {
+            margin-top: 15px;
+        }
+        .permissions-warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            display: none;
+        }
+        .chat-container {
+            margin-top: 20px;
+        }
+        .chat-message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .user-message {
+            background-color: #d1e7dd;
+            text-align: right;
+        }
+        .bot-message {
+            background-color: #f8d7da;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Hable para interactuar con el bot</h1>
+        <div id="permissions-warning" class="permissions-warning">
+            ⚠️ Se requieren permisos de micrófono para esta aplicación
+        </div>
+        <button id="start">Comenzar a hablar</button>
+        <p id="status"></p>
+        <p id="error" class="error" style="display: none;"></p>
+
+        <!-- Contenedor para los mensajes del chat -->
+        <div id="chat" class="chat-container"></div>
+    </div>
+
+    <script>
+        const startButton = document.getElementById("start");
+        const statusText = document.getElementById("status");
+        const errorText = document.getElementById("error");
+        const permissionsWarning = document.getElementById("permissions-warning");
+        const chatContainer = document.getElementById("chat");
+        let recognition = null;
+        let isListening = false;
+
+        // Verificar permisos iniciales
+        navigator.permissions.query({ name: 'microphone' })
+            .then(permissionStatus => {
+                updatePermissionStatus(permissionStatus.state);
+                permissionStatus.onchange = () => {
+                    updatePermissionStatus(permissionStatus.state);
+                };
+            });
+
+        function updatePermissionStatus(status) {
+            if (status === 'granted') {
+                permissionsWarning.style.display = 'none';
+                startButton.disabled = false;
+            } else {
+                permissionsWarning.style.display = 'block';
+                permissionsWarning.textContent = status === 'denied' 
+                    ? '❌ Permiso de micrófono denegado. Por favor, actualiza los permisos en la configuración del navegador.' 
+                    : '⚠️ Se requieren permisos de micrófono para esta aplicación';
+            }
+        }
+
+        async function initializeVoiceRecognition() {
+            if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
+                showError("Tu navegador no soporta reconocimiento de voz. Por favor, usa Chrome o Edge.");
+                return false;
+            }
+
+            try {
+                // Solicitar permisos explícitamente
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                stream.getTracks().forEach(track => track.stop());
+                
+                recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                recognition.lang = "es-ES";
+                recognition.continuous = false;
+                recognition.interimResults = false;
+
+                setupRecognitionHandlers();
+                return true;
+            } catch (error) {
+                showError("Error al acceder al micrófono. Por favor, verifica los permisos.");
+                return false;
+            }
+        }
+
+        function setupRecognitionHandlers() {
+            recognition.onstart = () => {
+                isListening = true;
+                startButton.textContent = "Detener";
+                statusText.textContent = "Escuchando...";
+                statusText.className = "success";
+                hideError();
+            };
+
+            recognition.onend = () => {
+                isListening = false;
+                startButton.textContent = "Comenzar a hablar";
+                statusText.textContent = "Reconocimiento de voz detenido";
+            };
+
+            recognition.onresult = (event) => {
+                const speechToText = event.results[0][0].transcript;
+                statusText.textContent = `Texto transcrito: ${speechToText}`;
+                
+                // Mostrar el mensaje del usuario en el chat
+                addChatMessage(speechToText, 'user');
+
+                // Enviar el texto al backend
+                fetch("http://localhost:8000/api/chat/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ text: speechToText })
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
+                    return response.json();
+                })
+                .then(data => {
+                    const botResponse = data.response;
+                    // Mostrar la respuesta del bot en el chat
+                    addChatMessage(botResponse, 'bot');
+                })
+                .catch(error => {
+                    showError(`Error al comunicarse con el servidor: ${error.message}`);
+                });
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Error de reconocimiento:', event);
+                switch (event.error) {
+                    case 'network':
+                        showError("Error de conexión. Verifica tu conexión a internet.");
+                        break;
+                    case 'not-allowed':
+                        showError("Acceso al micrófono denegado. Por favor, concede permisos en la configuración del navegador.");
+                        break;
+                    case 'no-speech':
+                        showError("No se detectó voz. Por favor, intenta hablar de nuevo.");
+                        break;
+                    default:
+                        showError(`Error en el reconocimiento de voz: ${event.error}`);
+                }
+                stopRecognition();
+            };
+        }
+
+        function showError(message) {
+            errorText.textContent = message;
+            errorText.style.display = 'block';
+        }
+
+        function hideError() {
+            errorText.style.display = 'none';
+        }
+
+        function stopRecognition() {
+            if (recognition && isListening) {
+                recognition.stop();
+                isListening = false;
+                startButton.textContent = "Comenzar a hablar";
+            }
+        }
+
+        // Función para agregar un mensaje al chat
+        function addChatMessage(text, sender) {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('chat-message');
+            messageElement.classList.add(sender === 'user' ? 'user-message' : 'bot-message');
+            
+            // Procesar el texto para convertir los * y ** en formato HTML
+            messageElement.innerHTML = processText(text); // Usar innerHTML para procesar el formato
+            chatContainer.appendChild(messageElement);
+            chatContainer.scrollTop = chatContainer.scrollHeight;  // Hacer scroll hacia abajo
+        }
+
+        // Función para procesar el texto y aplicar formato HTML
+        function processText(text) {
+            // Reemplazar los ** por <strong> (negrita)
+            text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            // Reemplazar los * por <em> (cursiva)
+            text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            // Reemplazar saltos de línea por etiquetas <br>
+            text = text.replace(/\n/g, '<br>');
+            return text;
+        }
+
+        startButton.addEventListener("click", async () => {
+            if (!recognition && !await initializeVoiceRecognition()) {
+                return;
+            }
+
+            if (!isListening) {
+                try {
+                    recognition.start();
+                } catch (error) {
+                    showError("Error al iniciar el reconocimiento. Por favor, intenta de nuevo.");
+                    stopRecognition();
+                }
+            } else {
+                stopRecognition();
+            }
+        });
+    </script>
+</body>
+</html>
