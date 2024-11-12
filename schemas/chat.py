@@ -10,5 +10,3 @@ class MessageResponse(BaseModel):
     response: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True

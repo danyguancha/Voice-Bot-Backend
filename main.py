@@ -5,12 +5,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 
-
+app = FastAPI()
 
 # Crear las tablas en la base de datos
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI()
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.add_middleware(
     CORSMiddleware,
@@ -21,5 +21,8 @@ app.add_middleware(
 )
 
 
-# Registrar el router
-app.include_router(chatRoutes.router, prefix="/api")
+app.include_router(chatRoutes.router, prefix="/api", tags=["chat"])
+
+@app.get("/")
+async def root():
+    return {"message": "Hello World"}
