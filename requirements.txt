@@ -23,9 +23,6 @@ httplib2==0.22.0
 idna==3.10
 joblib==1.4.2
 Markdown==3.7
-mysql==0.0.3
-mysql-connector-python==9.1.0
-mysqlclient==2.2.5
 nltk==3.9.1
 proto-plus==1.25.0
 protobuf==5.28.3
