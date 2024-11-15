@@ -1,6 +1,7 @@
+
 from models.tables import Message
 from schemas import chat as chat_schemas
-from config.configurationIA import generate_response
+from config.configurationIA import generate_response, devuelve_nivel_felicidad
 from controllers.audioController import listen_and_transcribe
 from helper.filters import GREETINGS, FAREWELLS, FINANCIAL_TERMS
 from helper.lectorData import get_users
@@ -25,7 +26,8 @@ def get_bot_response(message: chat_schemas.MessageCreate, db):
     
 
     bot_response = generate_response(message.text)
-    user_emotion = 0.0
+    #SE AGREGO USER EMOTION PARA QUE SE PUEDA VISUALIZAR EN EL FRONTEND
+    user_emotion = devuelve_nivel_felicidad(message.text)
     bot_emotion = "Neutral"    
     bot_response_html = markdown.markdown(bot_response)
     
@@ -47,6 +49,9 @@ def get_bot_response(message: chat_schemas.MessageCreate, db):
     token_count = word_count  # En este caso, 1 token = 1 palabra
     cost = token_count * 0.25  # Ajustar el costo si aplica
     
+
+    bot_emotion = "Neutral"    
+    
     # Guardar el mensaje en la base de datos
     db_message = Message(text=message.text, user_emotion = user_emotion, bot_emotion = bot_emotion, response=bot_response_html)
     db.add(db_message)
@@ -57,7 +62,8 @@ def get_bot_response(message: chat_schemas.MessageCreate, db):
         "response": bot_response_html,
         "token_count": token_count,
         "cost": cost,
-        "word_count": word_count
+        "word_count": word_count,
+        "user_emotion": user_emotion
     }
 
     print("Debugging Response Data:", response_data)
