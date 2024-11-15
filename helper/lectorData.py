@@ -8,4 +8,4 @@ def read_json_data(path):
 def get_users():
     return read_json_data('data/users.json')
 
-print(get_users())
+print(get_users()[2]['Monto_Deuda'])

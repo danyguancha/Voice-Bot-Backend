@@ -3,6 +3,7 @@ from schemas import chat as chat_schemas
 from config.configurationIA import generate_response
 from controllers.audioController import listen_and_transcribe
 from helper.filters import GREETINGS, FAREWELLS, FINANCIAL_TERMS
+from helper.lectorData import get_users
 import markdown
 
 
@@ -21,7 +22,7 @@ def get_bot_response(message: chat_schemas.MessageCreate, db):
     else:
         # Generar una respuesta que tome en cuenta el contexto
         context_prompt = f"Última pregunta: {last_message}. Ahora la nueva pregunta es: {message.text}"
-        bot_response = generate_response(context_prompt)
+        bot_response = generate_response(message.text)
         
     bot_response_html = markdown.markdown(bot_response)
     
@@ -54,3 +55,35 @@ def get_input(db):
     if last_message:
         return last_message.text
     return None
+
+def get_initial_bot_message(db):
+    # Mensaje inicial del bot
+    initial_message = "¡Hola! Soy tu asistente virtual. ¿En qué puedo ayudarte hoy?"
+    bot_response_html = markdown.markdown(initial_message)
+    
+    # Guardar el mensaje inicial en la base de datos
+    db_message = Message(text=None, response=bot_response_html)  # No hay texto de usuario aún
+    db.add(db_message)
+    db.commit()
+    db.refresh(db_message)
+    
+    return {"response": bot_response_html}
+
+
+def consult_debtor(numero_documento):
+    user_debtor = consult_user(numero_documento)
+    if user_debtor:
+        name = user_debtor['Nombre_Cliente']
+
+
+
+        
+def consult_user(numero_documento):
+    users = get_users()
+    for user in users:
+        if user['Numero_Documento'] == numero_documento:
+            return user
+    
+
+    
+    
