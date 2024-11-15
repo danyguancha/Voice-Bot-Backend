@@ -22,37 +22,52 @@ except LookupError:
 
 
 def get_bot_response(message: chat_schemas.MessageCreate, db):
-    
+    """
+    Maneja el flujo del chatbot, comenzando por capturar el número de documento como una cadena.
+    """
+    # Obtener el último mensaje del usuario
+    last_input = get_input(db)
 
+    if not last_input:
+        # Si no hay un mensaje previo, envía el mensaje inicial
+        return get_first_bot_message(db)
+
+    # Validar el número de documento
+    if last_input:
+        numero_documento = message.text.replace(" ", "")
+        if numero_documento:
+            # Mensaje con la información del documento
+            return get_second_bot_message(numero_documento, db)
+        else:
+            # Solicitar nuevamente un número de documento válido
+            error_message = "Por favor, proporcióname un número de documento válido."
+            return {"response": markdown.markdown(error_message)}
+
+    # Flujo después de capturar el número de documento
     bot_response = generate_response(message.text)
-    user_emotion = 0.0
-    bot_emotion = "Neutral"    
-    bot_response_html = markdown.markdown(bot_response)
-    
-    # Procesar la respuesta generada
+    emotion = "Neutral"
     bot_response_html = markdown.markdown(bot_response)
 
-    # Limpiar texto de etiquetas HTML
+    # Limpiar el texto de etiquetas HTML
     clean_text = BeautifulSoup(bot_response_html, "html.parser").get_text()
 
-    # Tokenización alternativa si nltk falla
-    try:
-        words = word_tokenize(clean_text)
-    except LookupError:
-        # Si nltk no funciona, usar regex como alternativa
-        words = re.findall(r'\b\w+\b', clean_text)
-
-    # Calcular palabras y tokens
+    # Tokenización y conteo de palabras
+    words = word_tokenize(clean_text)
     word_count = len(words)
-    token_count = word_count  # En este caso, 1 token = 1 palabra
-    cost = token_count * 0.25  # Ajustar el costo si aplica
-    
+    token_count = word_count
+    cost = token_count * 0.25
+
     # Guardar el mensaje en la base de datos
-    db_message = Message(text=message.text, user_emotion = user_emotion, bot_emotion = bot_emotion, response=bot_response_html)
+    db_message = Message(
+        text=message.text,
+        user_emotion=emotion,
+        bot_emotion=emotion,
+        response=bot_response_html
+    )
     db.add(db_message)
     db.commit()
     db.refresh(db_message)
-    
+
     response_data = {
         "response": bot_response_html,
         "token_count": token_count,
@@ -61,46 +76,54 @@ def get_bot_response(message: chat_schemas.MessageCreate, db):
     }
 
     print("Debugging Response Data:", response_data)
-
     return response_data
 
 
 
-
-# Función para verificar si el mensaje es un saludo
-def is_greeting(text: str) -> bool:
-    text = text.lower()  # Convertir el texto a minúsculas
-    return any(greeting in text for greeting in GREETINGS)
-
-# Función para verificar si el mensaje es una despedida
-def is_farewell(text: str) -> bool:
-    text = text.lower()  # Convertir el texto a minúsculas
-    return any(farewell in text for farewell in FAREWELLS)
-
-# Función para verificar si el mensaje está relacionado con administración financiera
-def is_financial_topic(text: str) -> bool:
-    text = text.lower()  # Convertir el texto a minúsculas
-    return any(term in text for term in FINANCIAL_TERMS)
-
 def get_input(db):
     # Obtener el ultimo texto de entrada por parte del usuario
     last_message = db.query(Message).order_by(Message.id.desc()).first()
+    #last_message = db.query(Message).filter(Message.text.isnot(None)).order_by(Message.id.desc()).first()
     if last_message:
         return last_message.text
     return None
 
-def get_initial_bot_message(numero_documento, db):
-    nombre, monto = consult_debtor(numero_documento)
+def is_number(text: str) -> bool:
+    # Verificar si el texto es un número válido
+    return re.match(r'^\d+$', text) is not None
 
-    initial_message = f"¡Hola! {nombre}, un gusto sa"
+def get_second_bot_message(numero_documento, db):
+    # Generar el mensaje basado en el número de documento
+    nombre, monto = consult_debtor(numero_documento)
+    if not nombre:
+        error_message = f"No encontramos información asociada al documento {numero_documento}. Por favor, verifica el número."
+        return {"response": markdown.markdown(error_message)}
+
+    initial_message = (
+        f"¡Hola, {nombre}! Un gusto saludarlo. "
+        f"Le habla la asistente virtual de Indra. "
+        f"Lo estoy contactando para que podamos conversar sobre el vencimiento de su factura por un monto de {monto} pesos colombianos."
+    )
     bot_response_html = markdown.markdown(initial_message)
     
-    # Guardar el mensaje inicial en la base de datos
-    db_message = Message(text=None, response=bot_response_html)  # No hay texto de usuario aún
+    # Guardar el mensaje en la base de datos
+    db_message = Message(text=initial_message, user_emotion = 0.0, bot_emotion='Neutral', response=bot_response_html)  # No hay texto del usuario aún
     db.add(db_message)
     db.commit()
     db.refresh(db_message)
-    
+    return {"response": bot_response_html}
+
+def get_first_bot_message(db):
+    # Mensaje inicial del bot
+    initial_message = "¡Hola! Soy la asistente virtual de Indra. Me puedes proporcionar tu número de documento para poder ayudarte con tu consulta."
+    bot_response_html = markdown.markdown(initial_message)
+    userEmotion = 0.0
+    botEmotion = "Neutral"
+    # Guardar el mensaje inicial en la base de datos
+    db_message = Message(text=initial_message, user_emotion=userEmotion, bot_emotion=botEmotion, response=bot_response_html)  # No hay texto del usuario aún
+    db.add(db_message)
+    db.commit()
+    db.refresh(db_message)
     return {"response": bot_response_html}
 
 

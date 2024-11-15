@@ -30,15 +30,7 @@ async def chat(audio: UploadFile = File(...), db: Session = Depends(get_db)):
     bot_audio = text_to_speech(bot_response["response"])
     audio_url = f"http://localhost:8000/static/response_audio.mp3"
 
-    # Retornar respuesta con cálculos adicionales
-    return {
-        "text": transcription,
-        "response": bot_response["response"],
-        "token_count": bot_response["token_count"],
-        "cost": bot_response["cost"],
-        "word_count": bot_response["word_count"],
-        "audioUrl": audio_url
-    }
+    return {"response": bot_response["response"], "audio_url": audio_url}
 
 @router.get("/input_text/")
 async def get_last_input(db: Session = Depends(get_db)):
