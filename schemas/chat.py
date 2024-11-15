@@ -12,5 +12,4 @@ class MessageResponse(BaseModel):
     text: str
     response: str
     created_at: datetime
-    
 

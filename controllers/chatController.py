@@ -5,20 +5,6 @@ from controllers.audioController import listen_and_transcribe
 from helper.filters import GREETINGS, FAREWELLS, FINANCIAL_TERMS
 from helper.lectorData import get_users
 import markdown
-import markdown
-import nltk
-from nltk.tokenize import word_tokenize
-from bs4 import BeautifulSoup
-from models.tables import Message
-import markdown
-import re
-
-# Configurar y verificar la descarga del recurso punkt
-nltk.data.path.append("C:\\nltk_data")  # Ruta personalizada para nltk
-try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
-    nltk.download('punkt', download_dir="C:\\nltk_data")
 
 
 def get_bot_response(message: chat_schemas.MessageCreate, db):
@@ -129,12 +115,11 @@ def get_first_bot_message(db):
 
 def consult_debtor(numero_documento):
     user_debtor = consult_user(numero_documento)
-    nombre = ''
-    monto = 0
     if user_debtor:
-        nombre = user_debtor['Nombre_Cliente']
-        monto = user_debtor['Monto_Deuda']
-    return nombre, monto
+        name = user_debtor['Nombre_Cliente']
+
+
+
         
 def consult_user(numero_documento):
     users = get_users()
