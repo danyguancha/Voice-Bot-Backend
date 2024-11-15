@@ -1,3 +1,4 @@
+
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from config.db import get_db
@@ -27,10 +28,24 @@ async def chat(audio: UploadFile = File(...), db: Session = Depends(get_db)):
     bot_response = get_bot_response(message_data, db)
     bot_audio = text_to_speech(bot_response["response"])
     audio_url = f"http://localhost:8000/static/response_audio.mp3"
-    return {"text":transcription, "response": bot_response["response"], "audioUrl": audio_url}
+
+    # Retornar respuesta con cálculos adicionales
+
+    #SE AGREGO USER EMOTION PARA QUE SE PUEDA VISUALIZAR EN EL FRONTEND
+    return {
+        "text": transcription,
+        "response": bot_response["response"],
+        "token_count": bot_response["token_count"],
+        "cost": bot_response["cost"],
+        "word_count": bot_response["word_count"],
+        "audioUrl": audio_url,
+        "user_emotion": bot_response["user_emotion"]
+    }
+#-------------
 
 @router.get("/input_text/")
 async def get_last_input(db: Session = Depends(get_db)):
+
     input_text = get_input(db)
     if input_text is None:
         raise HTTPException(status_code=404, detail="No hay mensajes de entrada en la base de datos")
