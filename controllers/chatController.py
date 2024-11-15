@@ -9,15 +9,15 @@ import markdown
 def get_bot_response(message: chat_schemas.MessageCreate, db):
     # Obtener el último mensaje para contextualizar la respuesta
     last_message = get_input(db)
-    
     # Verificar si el mensaje es un saludo o despedida
     if is_greeting(message.text):
         bot_response = "¡Hola! ¿En qué puedo ayudarte hoy?"
     elif is_farewell(message.text):
         bot_response = "¡Hasta luego! Que tengas un buen día."
-    # Verificar si el mensaje está relacionado con administración financiera
-    elif not is_financial_topic(message.text):
-        bot_response = "Lo siento, no puedo responder preguntas fuera del ámbito de la administración financiera."
+        # Verificar si el mensaje está relacionado con administración financiera
+        """elif not is_financial_topic(message.text):
+            bot_response = "Lo siento, no puedo responder preguntas fuera del ámbito de la administración financiera."
+        else:"""
     else:
         # Generar una respuesta que tome en cuenta el contexto
         context_prompt = f"Última pregunta: {last_message}. Ahora la nueva pregunta es: {message.text}"
@@ -30,7 +30,6 @@ def get_bot_response(message: chat_schemas.MessageCreate, db):
     db.add(db_message)
     db.commit()
     db.refresh(db_message)
-
     return {"response": bot_response_html}
 
 
