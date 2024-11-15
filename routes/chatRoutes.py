@@ -25,20 +25,9 @@ async def chat(audio: UploadFile = File(...), db: Session = Depends(get_db)):
     # Obtener respuesta del bot
     message_data = chat_schemas.MessageCreate(text=transcription)
     bot_response = get_bot_response(message_data, db)
-    
-    # Procesar el audio de la respuesta
     bot_audio = text_to_speech(bot_response["response"])
     audio_url = f"http://localhost:8000/static/response_audio.mp3"
-
-    # Retornar respuesta con cálculos adicionales
-    return {
-        "text": transcription,
-        "response": bot_response["response"],
-        "token_count": bot_response["token_count"],
-        "cost": bot_response["cost"],
-        "word_count": bot_response["word_count"],
-        "audioUrl": audio_url
-    }
+    return {"text":transcription, "response": bot_response["response"], "audioUrl": audio_url}
 
 @router.get("/input_text/")
 async def get_last_input(db: Session = Depends(get_db)):
@@ -46,3 +35,4 @@ async def get_last_input(db: Session = Depends(get_db)):
     if input_text is None:
         raise HTTPException(status_code=404, detail="No hay mensajes de entrada en la base de datos")
     return {"text": input_text}
+
