@@ -17,7 +17,8 @@ genai.configure(api_key=key_api)
 # Función para generar contenido usando el modelo
 def generate_response(prompt: str) -> str:
     model = genai.GenerativeModel("gemini-1.5-flash")
-    response = model.generate_content(prompt)
+    regla="Eres una IA que se encarga de organizar negocios de acuerdo a las necesidades de los clientes, por favor, responde a la siguiente pregunta y de ser el caso intenta negociar acuerdos de pago: "
+    response = model.generate_content(regla + prompt)
     return response.text
 
     #SE AGREGARON LOS METODOS PARA DETECTAR EMOCIONES
