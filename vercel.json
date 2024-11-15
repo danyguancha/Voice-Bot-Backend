@@ -3,13 +3,13 @@
   "builds": [
     {
       "src": "main.py",
-      "use": "@vercel/node"
+      "use": "@vercel/python"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/"
+      "dest": "main.py"
     }
   ]
 }
