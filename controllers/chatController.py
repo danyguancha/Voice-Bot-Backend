@@ -6,6 +6,44 @@ from controllers.audioController import listen_and_transcribe
 from helper.filters import GREETINGS, FAREWELLS, FINANCIAL_TERMS
 from helper.lectorData import get_users
 import markdown
+from nltk.tokenize import word_tokenize
+from bs4 import BeautifulSoup
+import nltk
+
+nltk.download('punkt')  # Descargar recursos necesarios para tokenización
+
+# Clase acumuladora
+class Accumulator:
+    def __init__(self):
+        self.data = {
+            "token_count": 0,
+            "cost": 0.0,
+            "word_count": 0
+        }
+
+    def update(self, response_data):
+        self.data["token_count"] += response_data.get("token_count", 0)
+        self.data["cost"] += response_data.get("cost", 0.0)
+        self.data["word_count"] += response_data.get("word_count", 0)
+
+    def get_totals(self):
+        return self.data
+
+
+# Instancia de acumulador global
+response_accumulator = Accumulator()
+
+
+# Función para contar tokens
+def contar_tokens(texto):
+    tokens = word_tokenize(texto)
+    return len(tokens)
+
+
+# Función para calcular costo
+def calcular_costo(numero_de_tokens, costo_por_1000_tokens=0.00001875):
+    costo_total = (numero_de_tokens / 1000) * costo_por_1000_tokens
+    return costo_total
 
 
 def get_bot_response(message: chat_schemas.MessageCreate, db):
@@ -40,15 +78,12 @@ def get_bot_response(message: chat_schemas.MessageCreate, db):
     # Limpiar el texto de etiquetas HTML
     clean_text = BeautifulSoup(bot_response_html, "html.parser").get_text()
 
-    # Tokenización y conteo de palabras
-    words = word_tokenize(clean_text)
-    word_count = len(words)
-    token_count = word_count  # En este caso, 1 token = 1 palabra
-    cost = token_count * 0.25  # Ajustar el costo si aplica
-    
+    # Calcular métricas
+    texto = str(clean_text)
+    cantidad_palabras = len(texto.split())
+    numero_de_tokens = contar_tokens(texto)
+    costo = calcular_costo(numero_de_tokens)
 
-    bot_emotion = "Neutral"    
-    
     # Guardar el mensaje en la base de datos
     db_message = Message(
         text=message.text,
@@ -62,19 +97,26 @@ def get_bot_response(message: chat_schemas.MessageCreate, db):
 
     response_data = {
         "response": bot_response_html,
-        "token_count": token_count,
-        "cost": cost,
-        "word_count": word_count,
-        "user_emotion": user_emotion
+        "token_count": numero_de_tokens,
+        "cost": costo,
+        "word_count": cantidad_palabras
     }
 
-    print("Debugging Response Data:", response_data)
-    return response_data
+    # Actualizar acumulador con los datos actuales,
+        "user_emotion": user_emotion
+    response_accumulator.update(response_data)
+    print("valor acumulado todos los datos ",response_accumulator)
+    print("valor acumulado todos los datos de toda la response data ",response_data)
+    # Retornar datos actuales y acumulados    return {
+        "current_response": response_data,
+        "accumulated_totals": response_accumulator.get_totals()
+    }
 
 
 
+
+# Obtener el último mensaje de la base de datos
 def get_input(db):
-    # Obtener el ultimo texto de entrada por parte del usuario
     last_message = db.query(Message).order_by(Message.id.desc()).first()
     #last_message = db.query(Message).filter(Message.text.isnot(None)).order_by(Message.id.desc()).first()
     if last_message:
