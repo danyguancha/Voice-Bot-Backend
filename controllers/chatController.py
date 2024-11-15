@@ -85,3 +85,6 @@ def consult_user(numero_documento):
         if user['Numero_Documento'] == numero_documento:
             return user
     
+
+    
+    

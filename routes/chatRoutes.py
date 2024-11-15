@@ -35,3 +35,4 @@ async def get_last_input(db: Session = Depends(get_db)):
     if input_text is None:
         raise HTTPException(status_code=404, detail="No hay mensajes de entrada en la base de datos")
     return {"text": input_text}
+
