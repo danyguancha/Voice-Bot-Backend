@@ -96,17 +96,14 @@ def get_bot_response(message: chat_schemas.MessageCreate, db):
     db.refresh(db_message)
 
     response_data = {
-        "response": bot_response_html,
-        "token_count": numero_de_tokens,
-        "cost": costo,
-        "word_count": cantidad_palabras,
-        "user_emotion": user_emotion,
-        "accumulated_totals": response_accumulator.get_totals()
-    }
+    "response": bot_response_html,
+    "num_token_count": numero_de_tokens,  # Cambiar "token_countt" a "token_count"
+    "cost": costo,
+    "word_count": cantidad_palabras,
+    "user_emotion": user_emotion,
+    "accumulated_totals": response_accumulator.get_totals()
+    }   
 
-
-
-    # Actualizar acumulador con los datos actuales,
     
     response_accumulator.update(response_data)
     return response_data

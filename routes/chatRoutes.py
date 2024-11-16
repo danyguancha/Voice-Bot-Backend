@@ -28,27 +28,17 @@ async def chat(audio: UploadFile = File(...), db: Session = Depends(get_db)):
     bot_response = get_bot_response(message_data, db)
 
     # Procesar el audio de la respuesta
-    try:
-        bot_audio = text_to_speech(bot_response["current_response"]["response"])
-    except KeyError as e:
-        raise HTTPException(status_code=500, detail=f"Error procesando la respuesta del bot: {e}")
-
-    # Generar URL del audio (actualiza si tienes lógica diferente para guardar audios)
-    audio_url = f"http://localhost:8000/static/response_audio.mp3"
+    bot_audio = text_to_speech(bot_response["response"])
+    audio_url = f"https://voice-bot-back.onrender.com/docs/static/response_audio.mp3"
 
     # Retornar respuesta con cálculos adicionales
 
     #SE AGREGO USER EMOTION PARA QUE SE PUEDA VISUALIZAR EN EL FRONTEND
     return {
-        "text": transcription,
-        "response": bot_response["current_response"]["response"],
-        "token_count": bot_response["current_response"]["token_count"],
-        "cost": bot_response["current_response"]["cost"],
-        "word_count": bot_response["current_response"]["word_count"],
-        "audioUrl": audio_url,
-        "user_emotion": bot_response["user_emotion"],
-        "accumulated_totals": bot_response["accumulated_totals"],
+        "response": bot_response["response"],
+        "audio_url": audio_url,
     }
+
 #-------------
 
 @router.get("/input_text/")
