@@ -87,8 +87,8 @@ def get_bot_response(message: chat_schemas.MessageCreate, db):
     # Guardar el mensaje en la base de datos
     db_message = Message(
         text=message.text,
-        user_emotion=emotion,
-        bot_emotion=emotion,
+        user_emotion=user_emotion,
+        bot_emotion=bot_emotion,
         response=bot_response_html
     )
     db.add(db_message)
@@ -99,18 +99,18 @@ def get_bot_response(message: chat_schemas.MessageCreate, db):
         "response": bot_response_html,
         "token_count": numero_de_tokens,
         "cost": costo,
-        "word_count": cantidad_palabras
-    }
-
-    # Actualizar acumulador con los datos actuales,
-        "user_emotion": user_emotion
-    response_accumulator.update(response_data)
-    print("valor acumulado todos los datos ",response_accumulator)
-    print("valor acumulado todos los datos de toda la response data ",response_data)
-    # Retornar datos actuales y acumulados    return {
-        "current_response": response_data,
+        "word_count": cantidad_palabras,
+        "user_emotion": user_emotion,
         "accumulated_totals": response_accumulator.get_totals()
     }
+
+
+
+    # Actualizar acumulador con los datos actuales,
+    
+    response_accumulator.update(response_data)
+    return response_data
+    
 
 
 
@@ -123,12 +123,9 @@ def get_input(db):
         return last_message.text
     return None
 
-def is_number(text: str) -> bool:
-    # Verificar si el texto es un número válido
-    return re.match(r'^\d+$', text) is not None
 
 def get_second_bot_message(numero_documento, db):
-    # Generar el mensaje basado en el número de documento
+   
     nombre, monto = consult_debtor(numero_documento)
     if not nombre:
         error_message = f"No encontramos información asociada al documento {numero_documento}. Por favor, verifica el número."
@@ -166,6 +163,9 @@ def consult_debtor(numero_documento):
     user_debtor = consult_user(numero_documento)
     if user_debtor:
         name = user_debtor['Nombre_Cliente']
+        monto = user_debtor['Monto_Factura']
+        return name, monto
+    return None, None
 
 
 

@@ -33,8 +33,6 @@ def detect_emotion(text: str) -> str:
 
     print("Datos de la respuesta: ", response.text)
 
-    
-
     # Extraer la parte del inicio del response.text que está en comillas triples
     try:
         # Utiliza una expresión regular para encontrar el texto entre comillas triples y etiquetas ```json
