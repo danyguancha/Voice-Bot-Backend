@@ -28,15 +28,20 @@ async def chat(audio: UploadFile = File(...), db: Session = Depends(get_db)):
     bot_response = get_bot_response(message_data, db)
 
     # Procesar el audio de la respuesta
-    bot_audio = text_to_speech(bot_response["response"])
-    audio_url = f"https://voice-bot-back.onrender.com/docs/static/response_audio.mp3"
+    #bot_audio = text_to_speech(bot_response["response"])
 
     # Retornar respuesta con cálculos adicionales
+    #print(bot_response)
 
     #SE AGREGO USER EMOTION PARA QUE SE PUEDA VISUALIZAR EN EL FRONTEND
     return {
         "response": bot_response["response"],
-        "audio_url": audio_url,
+        "text": transcription,
+        "num_token_count": bot_response["num_token_count"],
+        "cost": bot_response["cost"],
+        "word_count": bot_response["word_count"],
+        "user_emotion": bot_response["user_emotion"],
+        "accumulated_totals": bot_response["accumulated_totals"]
     }
 
 #-------------

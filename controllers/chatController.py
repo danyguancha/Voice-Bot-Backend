@@ -6,13 +6,9 @@ from controllers.audioController import listen_and_transcribe
 from helper.filters import GREETINGS, FAREWELLS, FINANCIAL_TERMS
 from helper.lectorData import get_users
 import markdown
-from nltk.tokenize import word_tokenize
 from bs4 import BeautifulSoup
-import nltk
+import re
 
-nltk.download('punkt')  # Descargar recursos necesarios para tokenización
-
-# Clase acumuladora
 class Accumulator:
     def __init__(self):
         self.data = {
@@ -29,50 +25,60 @@ class Accumulator:
     def get_totals(self):
         return self.data
 
-
 # Instancia de acumulador global
 response_accumulator = Accumulator()
 
-
-# Función para contar tokens
 def contar_tokens(texto):
-    tokens = word_tokenize(texto)
+    """
+    Cuenta tokens usando una aproximación simple basada en espacios y puntuación.
+    Esta es una implementación básica que divide el texto en tokens basándose en 
+    espacios y signos de puntuación comunes.
+    """
+    # Limpiar el texto
+    texto = texto.lower()
+    # Separar por espacios y puntuación
+    tokens = re.findall(r'\b\w+\b|[.,!?;]', texto)
     return len(tokens)
 
+def contar_palabras(texto):
+    """
+    Cuenta palabras usando una aproximación simple basada en espacios.
+    """
+    # Limpiar el texto de signos de puntuación y espacios múltiples
+    texto = re.sub(r'[^\w\s]', ' ', texto)
+    texto = re.sub(r'\s+', ' ', texto).strip()
+    # Dividir por espacios y contar
+    palabras = texto.split()
+    return len(palabras)
 
-# Función para calcular costo
 def calcular_costo(numero_de_tokens, costo_por_1000_tokens=0.00001875):
     costo_total = (numero_de_tokens / 1000) * costo_por_1000_tokens
     return costo_total
 
-
-def get_bot_response(message: chat_schemas.MessageCreate, db):
+def get_bot_response(message: chat_schemas.MessageCreate, db) -> dict:
     """
     Maneja el flujo del chatbot, comenzando por capturar el número de documento como una cadena.
     """
     # Obtener el último mensaje del usuario
     last_input = get_input(db)
-
     if not last_input:
-        # Si no hay un mensaje previo, envía el mensaje inicial
+        # Mensaje inicial del bot
         return get_first_bot_message(db)
 
     # Validar el número de documento
     if last_input:
-        numero_documento = message.text.replace(" ", "")
-        if numero_documento:
+        # Normalizar el texto para que sea solo un string numérico
+        numero_documento = re.sub(r'\D', '', message.text)  # Remueve todo excepto dígitos
+        if numero_documento.isdigit():  # Asegúrate de que sea un número válido
             # Mensaje con la información del documento
-            return get_second_bot_message(numero_documento, db)
-        else:
-            # Solicitar nuevamente un número de documento válido
-            error_message = "Por favor, proporcióname un número de documento válido."
-            return {"response": markdown.markdown(error_message)}
+            seg_message = get_second_bot_message(numero_documento, db)
+            return seg_message
+        
 
     # Flujo después de capturar el número de documento
     bot_response = generate_response(message.text)
-    #SE AGREGO USER EMOTION PARA QUE SE PUEDA VISUALIZAR EN EL FRONTEND
     user_emotion = devuelve_nivel_felicidad(message.text)
-    bot_emotion = "Neutral"    
+    bot_emotion = "Neutral"
     bot_response_html = markdown.markdown(bot_response)
 
     # Limpiar el texto de etiquetas HTML
@@ -80,7 +86,7 @@ def get_bot_response(message: chat_schemas.MessageCreate, db):
 
     # Calcular métricas
     texto = str(clean_text)
-    cantidad_palabras = len(texto.split())
+    cantidad_palabras = contar_palabras(texto)
     numero_de_tokens = contar_tokens(texto)
     costo = calcular_costo(numero_de_tokens)
 
@@ -96,26 +102,22 @@ def get_bot_response(message: chat_schemas.MessageCreate, db):
     db.refresh(db_message)
 
     response_data = {
-    "response": bot_response_html,
-    "num_token_count": numero_de_tokens,  # Cambiar "token_countt" a "token_count"
-    "cost": costo,
-    "word_count": cantidad_palabras,
-    "user_emotion": user_emotion,
-    "accumulated_totals": response_accumulator.get_totals()
-    }   
+        "response": bot_response_html,
+        "text": message.text,
+        "num_token_count": numero_de_tokens,
+        "cost": costo,
+        "word_count": cantidad_palabras,
+        "user_emotion": user_emotion,
+        "accumulated_totals": response_accumulator.get_totals()
+    }
 
-    
     response_accumulator.update(response_data)
     return response_data
     
 
-
-
-
 # Obtener el último mensaje de la base de datos
 def get_input(db):
     last_message = db.query(Message).order_by(Message.id.desc()).first()
-    #last_message = db.query(Message).filter(Message.text.isnot(None)).order_by(Message.id.desc()).first()
     if last_message:
         return last_message.text
     return None
@@ -133,34 +135,72 @@ def get_second_bot_message(numero_documento, db):
         f"Le habla la asistente virtual de Indra. "
         f"Lo estoy contactando para que podamos conversar sobre el vencimiento de su factura por un monto de {monto} pesos colombianos."
     )
-    bot_response_html = markdown.markdown(initial_message)
+    bot_response_html = BeautifulSoup(initial_message, "html.parser").get_text()
+    userEmotion = devuelve_nivel_felicidad(initial_message)
+    botEmotion = "Neutral"
     
     # Guardar el mensaje en la base de datos
-    db_message = Message(text=initial_message, user_emotion = 0.0, bot_emotion='Neutral', response=bot_response_html)  # No hay texto del usuario aún
+    db_message = Message(text=initial_message, user_emotion = userEmotion, bot_emotion=botEmotion, response=bot_response_html)  # No hay texto del usuario aún
     db.add(db_message)
     db.commit()
     db.refresh(db_message)
-    return {"response": bot_response_html}
+
+
+    texto = str(bot_response_html)
+    cantidad_palabras = len(texto.split())
+    numero_de_tokens = contar_tokens(texto)
+    costo = calcular_costo(numero_de_tokens)
+
+    response_data = {
+        "response": bot_response_html,
+        "text": initial_message,
+        "num_token_count": numero_de_tokens,  # Cambiar "token_countt" a "token_count"
+        "cost": costo,
+        "word_count": cantidad_palabras,
+        "user_emotion": userEmotion,
+        "accumulated_totals": response_accumulator.get_totals()
+    }   
+
+    
+    response_accumulator.update(response_data)
+    return response_data
 
 def get_first_bot_message(db):
     # Mensaje inicial del bot
     initial_message = "¡Hola! Soy la asistente virtual de Indra. Me puedes proporcionar tu número de documento para poder ayudarte con tu consulta."
-    bot_response_html = markdown.markdown(initial_message)
-    userEmotion = 0.0
+    bot_response_html = BeautifulSoup(initial_message, "html.parser").get_text()
+    userEmotion = devuelve_nivel_felicidad(initial_message)
     botEmotion = "Neutral"
     # Guardar el mensaje inicial en la base de datos
     db_message = Message(text=initial_message, user_emotion=userEmotion, bot_emotion=botEmotion, response=bot_response_html)  # No hay texto del usuario aún
     db.add(db_message)
     db.commit()
     db.refresh(db_message)
-    return {"response": bot_response_html}
+
+
+    texto = str(bot_response_html)
+    cantidad_palabras = len(texto.split())
+    numero_de_tokens = contar_tokens(texto)
+    costo = calcular_costo(numero_de_tokens)
+
+    response_data = {
+        "response": bot_response_html,
+        "text": initial_message,
+        "num_token_count": numero_de_tokens,  # Cambiar "token_countt" a "token_count"
+        "cost": costo,
+        "word_count": cantidad_palabras,
+        "user_emotion": userEmotion,
+        "accumulated_totals": response_accumulator.get_totals()
+    }   
+    response_accumulator.update(response_data)
+    return response_data
 
 
 def consult_debtor(numero_documento):
     user_debtor = consult_user(numero_documento)
     if user_debtor:
         name = user_debtor['Nombre_Cliente']
-        monto = user_debtor['Monto_Factura']
+        monto = user_debtor['Monto_Deuda']
         return name, monto
     return None, None
 
