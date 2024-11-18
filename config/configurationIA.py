@@ -20,9 +20,6 @@ def generate_response(prompt: str) -> str:
     response = model.generate_content(prompt)
     return response.text
 
-    #SE AGREGARON LOS METODOS PARA DETECTAR EMOCIONES
-
-
 #Es una funcion que permite detectar las emociones de un texto
 def detect_emotion(text: str) -> str:
     model = genai.GenerativeModel("gemini-1.5-flash")

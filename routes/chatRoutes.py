@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from config.db import get_db
 from controllers.audioController import listen_and_transcribe, text_to_speech
-from controllers.chatController import get_bot_response, get_input
+from controllers.chatController import get_bot_response, get_input, get_second_bot_message
 from schemas import chat as chat_schemas
 from fastapi.responses import StreamingResponse
 import io
@@ -27,13 +27,6 @@ async def chat(audio: UploadFile = File(...), db: Session = Depends(get_db)):
     message_data = chat_schemas.MessageCreate(text=transcription)
     bot_response = get_bot_response(message_data, db)
 
-    # Procesar el audio de la respuesta
-    #bot_audio = text_to_speech(bot_response["response"])
-
-    # Retornar respuesta con cálculos adicionales
-    #print(bot_response)
-
-    #SE AGREGO USER EMOTION PARA QUE SE PUEDA VISUALIZAR EN EL FRONTEND
     return {
         "response": bot_response["response"],
         "text": transcription,
@@ -44,7 +37,10 @@ async def chat(audio: UploadFile = File(...), db: Session = Depends(get_db)):
         "accumulated_totals": bot_response["accumulated_totals"]
     }
 
-#-------------
+@router.get("/chat_first_message/")
+async def get_first_message(db: Session = Depends(get_db)):
+    first_message = get_second_bot_message(db)
+    return first_message
 
 @router.get("/input_text/")
 async def get_last_input(db: Session = Depends(get_db)):

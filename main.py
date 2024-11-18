@@ -8,10 +8,10 @@ from fastapi.staticfiles import StaticFiles
 app = FastAPI()
 
 # Crear las tablas en la base de datos
-Base.metadata.create_all(bind=engine)
+#Base.metadata.create_all(bind=engine)
 
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+#app.mount("/static", StaticFiles(directory="static"), name="static")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # O puedes poner una lista de dominios específicos
