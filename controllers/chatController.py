@@ -1,4 +1,3 @@
-
 from models.tables import Message
 from schemas import chat as chat_schemas
 from config.configurationIA import generate_response, devuelve_nivel_felicidad
@@ -14,8 +13,9 @@ class Accumulator:
             "cost": 0.0,
             "word_count": 0
         }
-
+        
     def update(self, response_data):
+        # Acumular valores de token_count, cost y word_count
         self.data["token_count"] += response_data.get("token_count", 0)
         self.data["cost"] += response_data.get("cost", 0.0)
         self.data["word_count"] += response_data.get("word_count", 0)
@@ -23,7 +23,7 @@ class Accumulator:
     def get_totals(self):
         return self.data
 
-# Instancia de acumulador global
+# Instancia del acumulador global
 response_accumulator = Accumulator()
 
 def contar_tokens(texto):
@@ -41,8 +41,6 @@ def calcular_costo(numero_de_tokens, costo_por_1000_tokens=0.00001875):
     costo_total = (numero_de_tokens / 1000) * costo_por_1000_tokens
     return costo_total
 
-
-
 def get_bot_response(message: chat_schemas.MessageCreate, db) -> dict:
     bot_response = generate_response(message.text)
     user_emotion = devuelve_nivel_felicidad(message.text)
@@ -51,7 +49,7 @@ def get_bot_response(message: chat_schemas.MessageCreate, db) -> dict:
 
     clean_text = BeautifulSoup(bot_response_html, "html.parser").get_text()
 
-    # Calcular métricas
+    # Calcular métricas de la respuesta
     texto = str(clean_text)
     cantidad_palabras = contar_palabras(texto)
     numero_de_tokens = contar_tokens(texto)
@@ -68,6 +66,7 @@ def get_bot_response(message: chat_schemas.MessageCreate, db) -> dict:
     db.commit()
     db.refresh(db_message)
 
+    # Actualizar las métricas globales
     response_data = {
         "response": clean_text,
         "text": message.text,
@@ -80,7 +79,6 @@ def get_bot_response(message: chat_schemas.MessageCreate, db) -> dict:
 
     response_accumulator.update(response_data)
     return response_data
-    
 
 # Obtener el último mensaje de la base de datos
 def get_input(db):
@@ -88,7 +86,6 @@ def get_input(db):
     if last_message:
         return last_message.text
     return None
-
 
 def get_second_bot_message(db):
     numero_documento = '1234'
@@ -107,11 +104,10 @@ def get_second_bot_message(db):
     botEmotion = "Neutral"
     
     # Guardar el mensaje en la base de datos
-    db_message = Message(text=initial_message, user_emotion = userEmotion, bot_emotion=botEmotion, response=bot_response_html)  # No hay texto del usuario aún
+    db_message = Message(text=initial_message, user_emotion=userEmotion, bot_emotion=botEmotion, response=bot_response_html)  # No hay texto del usuario aún
     db.add(db_message)
     db.commit()
     db.refresh(db_message)
-
 
     texto = str(bot_response_html)
     cantidad_palabras = len(texto.split())
@@ -128,7 +124,6 @@ def get_second_bot_message(db):
         "accumulated_totals": response_accumulator.get_totals()
     }   
 
-    
     response_accumulator.update(response_data)
     return response_data
 
@@ -144,7 +139,6 @@ def get_first_bot_message(db):
     db.commit()
     db.refresh(db_message)
 
-
     texto = str(bot_response_html)
     cantidad_palabras = len(texto.split())
     numero_de_tokens = contar_tokens(texto)
@@ -153,7 +147,7 @@ def get_first_bot_message(db):
     response_data = {
         "response": bot_response_html,
         "text": initial_message,
-        "num_token_count": numero_de_tokens,  # Cambiar "token_countt" a "token_count"
+        "num_token_count": numero_de_tokens,  # Cambiar "token_count" a "token_count"
         "cost": costo,
         "word_count": cantidad_palabras,
         "user_emotion": userEmotion,
@@ -161,7 +155,6 @@ def get_first_bot_message(db):
     }   
     response_accumulator.update(response_data)
     return response_data
-
 
 def consult_debtor(numero_documento):
     user_debtor = consult_user(numero_documento)
@@ -176,7 +169,3 @@ def consult_user(numero_documento):
     for user in users:
         if user['Numero_Documento'] == numero_documento:
             return user
-    
-
-    
-    

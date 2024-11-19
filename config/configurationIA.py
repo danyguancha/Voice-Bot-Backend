@@ -17,7 +17,8 @@ genai.configure(api_key=key_api)
 # Función para generar contenido usando el modelo
 def generate_response(prompt: str) -> str:
     model = genai.GenerativeModel("gemini-1.5-flash")
-    response = model.generate_content(prompt)
+    filtro = 'De manera breve dime '
+    response = model.generate_content(filtro + prompt)
     return response.text
 
 #Es una funcion que permite detectar las emociones de un texto
@@ -27,8 +28,6 @@ def detect_emotion(text: str) -> str:
     emocion_respuesta={''}
     reglas="Devuelve un JSON en el rango de -1 a 1, donde -1 es donde siente menos la emocion y +1 donde siente mas la emocion, por ejemplo si esta triste happy esta cercano a -1, si esta feliz, happy esta cercano a +1,con la siguiente estructura: pregunta_usuario={'happy': RANGO DE 0 A -1, 'sad': RANGO DE 0 A -1, 'angry':RANGO DE 0 A -1, 'fearful': -RANGO DE 0 A -1, 'disgusted': RANGO DE 0 A -1, 'surprised': 0.2}, si no puedes procesarlo solo devuelve un JSON con todo en 0 para el siguiente texto"
     response = model.generate_content(reglas+ text)
-
-    print("Datos de la respuesta: ", response.text)
 
     # Extraer la parte del inicio del response.text que está en comillas triples
     try:

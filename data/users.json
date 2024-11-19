@@ -6,12 +6,12 @@
         "Numero_Documento": "12345678",
         "Telefono_Contacto": "+5734567890",
         "Correo_Electrónico": "juan.perez@example.com",
-        "Monto_Deuda": 1500.00,
+        "Monto_Deuda": 1500,
         "Fecha_Vencimiento": "2024-12-01",
         "Estado_Cuenta": "Pendiente",
         "Historial_Pagos": [
-            {"Fecha": "2024-01-10", "Monto": 500.00},
-            {"Fecha": "2024-06-10", "Monto": 500.00}
+            {"Fecha": "2024-01-10", "Monto": 500},
+            {"Fecha": "2024-06-10", "Monto": 500}
         ]
     },
     {
@@ -21,11 +21,11 @@
         "Numero_Documento": "87654321",
         "Telefono_Contacto": "+5787654321",
         "Correo_Electrónico": "ana.lopez@example.com",
-        "Monto_Deuda": 2000.00,
+        "Monto_Deuda": 2000,
         "Fecha_Vencimiento": "2024-11-30",
         "Estado_Cuenta": "En mora",
         "Historial_Pagos": [
-            {"Fecha": "2024-02-15", "Monto": 1000.00}
+            {"Fecha": "2024-02-15", "Monto": 1000}
         ]
     },
     {
@@ -35,12 +35,12 @@
         "Numero_Documento": "1234",
         "Telefono_Contacto": "+5729384756",
         "Correo_Electrónico": "carlos.martinez@example.com",
-        "Monto_Deuda": 1000.00,
+        "Monto_Deuda": 1000,
         "Fecha_Vencimiento": "2024-11-20",
         "Estado_Cuenta": "Pagada",
         "Historial_Pagos": [
-            {"Fecha": "2024-03-20", "Monto": 250.00},
-            {"Fecha": "2024-06-20", "Monto": 250.00}
+            {"Fecha": "2024-03-20", "Monto": 250},
+            {"Fecha": "2024-06-20", "Monto": 250}
         ]
     }
 ]
